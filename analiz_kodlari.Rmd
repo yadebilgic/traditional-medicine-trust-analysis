@@ -1,0 +1,1304 @@
+---
+title: "hastane, bilim, bilimİns yok"
+author: "Yade İrem Bilgic"
+date: "2026-04-22"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+setwd("C:/TEZ")
+getwd()
+``` 
+```{r}
+library(haven)
+df <- read_sav("C:/TEZ/veriyeni.sav")
+nrow(df)
+```
+```{r}
+names(df)
+```
+
+
+```{r}
+library(dplyr)
+library(haven)
+library(FactoMineR)
+library(factoextra)
+
+# 1. Seçim ve Temizlik
+df_mca_ready <- df %>% 
+  select(Q11E, Q11G, Q25, Gender, Education, Subjective_Income, Urban_Rural, AgeCategories) %>%
+  na.omit()
+
+# 2. Gruplandırma için her etiketin başına değişken adı
+df_mca_ready <- df_mca_ready %>%
+  mutate(
+    Q11E = factor(Q11E, levels = c(1,2,3), labels = c("DrHems:Yuksek", "DrHems:Sinirli", "DrHems:Dusuk")),
+    Q11G = factor(Q11G, levels = c(1,2,3), labels = c("Sifaci:Yuksek", "Sifaci:Sinirli", "Sifaci:Dusuk")),
+    Q25  = factor(Q25,  levels = c(1,2,3), labels = c("Asi:Olumlu", "Asi:Notr", "Asi:Olumsuz")),
+    
+    
+    Gender      = factor(Gender, levels = c(1,2), labels = c("Cinsiyet:Erkek", "Cinsiyet:Kadın")),
+    Education   = factor(Education, levels = c(1,2,3), labels = c("Egitim:Ilk", "Egitim:Orta", "Egitim:Yuksek")),
+    Urban_Rural = factor(Urban_Rural, levels = c(1,2), labels = c("Yerlesim:Kirsal", "Yerlesim:Kentsel")),
+    
+    Subjective_Income = factor(Subjective_Income, levels = c(1,2,3), labels = c("Gelir:Yuksek", "Gelir:Yeterli", "Gelir:Dusuk")),
+    AgeCategories = factor(AgeCategories, levels = c(1,2,3), labels = c("Yas:15-29", "Yas:30-49", "Yas:50+"))
+  )
+# 1. Analizi çalıştır
+res.mca <- MCA(df_mca_ready, method = "indicator", graph = FALSE)
+
+# 2. İsimleri ve Grupları Al
+var_names <- rownames(res.mca$var$coord)
+variable_groups <- as.factor(gsub(":.*", "", var_names))
+
+# 3. Kontrol 
+print(paste("Toplam Grup Sayısı:", length(levels(variable_groups))))
+
+n_gozlem <- nrow(df_mca_ready)
+print(paste("Analizde kullanılan toplam gözlem sayısı:", n_gozlem))
+
+
+```
+
+```{r}
+
+res.mca <- MCA(df_mca_ready, method = "indicator", graph = FALSE)
+
+
+vars_coord <- as.data.frame(res.mca$var$coord[, 1:2])
+colnames(vars_coord) <- c("Dim1", "Dim2")
+
+vars_coord$FullLabel <- rownames(vars_coord)
+
+
+library(ggplot2)
+library(ggrepel)
+
+ggplot(vars_coord, aes(x = Dim1, y = Dim2)) +
+
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        text = element_text(face = "bold")) +
+  
+  # Eksen Çizgileri
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey75") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey75") +
+  
+  
+  geom_point(color = "red", shape = 17, size = 3) +
+  
+  
+  geom_text_repel(aes(label = FullLabel), 
+                  color = "black", 
+                  size = 3.2, 
+                  fontface = "plain",
+                  max.overlaps = Inf) +
+  
+  labs(title = "MCA - Indicator Matrix",
+       subtitle = paste("Total Inertia:", round(res.mca$eig[1,2] + res.mca$eig[2,2], 1), "%"),
+       x = paste0("Dimension 1 (", round(res.mca$eig[1,2], 1), "%)"),
+       y = paste0("Dimension 2 (", round(res.mca$eig[2,2], 1), "%)"))
+```
+
+```{r}
+
+res.mca <- MCA(df_mca_ready, method = "indicator", graph = FALSE)
+
+
+vars_coord <- as.data.frame(res.mca$var$coord)
+vars_coord$Variable <- variable_groups
+vars_coord$Label <- rownames(vars_coord)
+
+
+ggplot(vars_coord, aes(x = `Dim 1`, y = `Dim 2`)) +
+  
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        text = element_text(face = "bold")) +
+  # Eksen çizgilerini ekleyelim
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey70") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey70") +
+  # RENKLİ ÜÇGENLER
+  geom_point(aes(color = Variable), shape = 17, size = 3) +
+  
+  geom_text_repel(aes(label = Label), 
+                  color = "black", 
+                  size = 3, 
+                  fontface = "plain",
+                  segment.size = 0.2,
+                  max.overlaps = Inf) +
+  # Renk paleti
+  scale_color_brewer(palette = "Set1") + 
+  labs(title = "MCA - Indicator Matrix",
+       subtitle = paste("Total Inertia:", round(res.mca$eig[1,2] + res.mca$eig[2,2], 1), "%"),
+       x = paste0("Dimension 1 (", round(res.mca$eig[1,2], 1), "%)"),
+       y = paste0("Dimension 2 (", round(res.mca$eig[2,2], 1), "%)"),
+       color = "Değişkenler")
+```
+
+```{r}
+library(FactoMineR)
+library(ggplot2)
+library(ggrepel)
+
+
+res_mca_ind <- MCA(df_mca_ready, method = "indicator", graph = FALSE)
+
+vars_ind <- as.data.frame(res_mca_ind$var$coord[, 1:2])
+colnames(vars_ind) <- c("Dim1", "Dim2")
+vars_ind$FullLabel <- rownames(vars_ind)
+
+vars_ind$NaturalGroup <- "Grup 4"
+vars_ind$NaturalGroup[vars_ind$Dim1 > 0 & vars_ind$Dim2 > 0] <- "Grup 1"
+vars_ind$NaturalGroup[vars_ind$Dim1 > 0 & vars_ind$Dim2 <= 0] <- "Grup 2"
+vars_ind$NaturalGroup[vars_ind$Dim1 <= 0 & vars_ind$Dim2 > 0] <- "Grup 3"
+
+ggplot(vars_ind, aes(x = Dim1, y = Dim2, color = NaturalGroup)) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        text = element_text(face = "bold"),
+        legend.position = "none") + 
+  
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey75") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey75") +
+
+ 
+  stat_ellipse(size = 1, type = "t") +
+
+  
+  geom_point(color = "red", shape = 17, size = 3) +
+  
+  
+  geom_text_repel(aes(label = FullLabel), 
+                  color = "black", size = 3.2, fontface = "plain", 
+                  segment.color = NA, max.overlaps = Inf) +
+labs(title = "MCA - Indicator Matrix (Levels)",
+       subtitle = paste("Total Inertia:", round(res.mca$eig[1,2] + res.mca$eig[2,2], 1), "%"),
+       x = "Dimension 1 (11.1%)", 
+       y = "Dimension 2 (10.8%)")
+```
+
+```{r}
+library(ggplot2)
+library(ggrepel)
+library(FactoMineR)
+
+
+res.mca_indicator <- MCA(df_mca_ready, method = "indicator", graph = FALSE)
+
+
+vars_ind <- as.data.frame(res.mca_indicator$var$coord[, 1:2])
+colnames(vars_ind) <- c("Dim1", "Dim2")
+vars_ind$FullLabel <- rownames(vars_ind)
+
+
+ind_coords_ind <- as.data.frame(res.mca_indicator$ind$coord[, 1:2])
+colnames(ind_coords_ind) <- c("Dim1", "Dim2")
+ind_coords_ind$Group <- df_mca_ready$Q11G 
+
+
+ggplot() +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        text = element_text(face = "bold")) +
+  
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey75") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey75") +
+
+  
+  stat_ellipse(data = ind_coords_ind, aes(x = Dim1, y = Dim2, color = Group), 
+               type = "t", level = 0.95, size = 1) +
+
+  
+  geom_point(data = vars_ind, aes(x = Dim1, y = Dim2), 
+             color = "red", shape = 17, size = 3) +
+  
+ 
+  geom_text_repel(data = vars_ind, aes(x = Dim1, y = Dim2, label = FullLabel), 
+                  color = "black", size = 3, fontface = "plain", max.overlaps = Inf) +
+  
+  
+  labs(title = "MCA - Indicator Matrix (Levels)",
+       subtitle = paste("Total Inertia:", 
+                        round(res.mca_indicator$eig[1,2] + res.mca_indicator$eig[2,2], 1), "%"),
+       x = paste0("Dimension 1 (", round(res.mca_indicator$eig[1,2], 1), "%)"),
+       y = paste0("Dimension 2 (", round(res.mca_indicator$eig[2,2], 1), "%)"),
+       color = "Şifacıya Güven")
+```
+
+
+```{r}
+library(FactoMineR)
+library(factoextra)
+library(ggplot2)
+library(ggrepel)
+
+res.mca <- MCA(df_mca_ready, method = "indicator", graph = FALSE)
+
+
+fviz_mca_ind(res.mca,
+             geom = "none",           
+             habillage = "Q11G",       
+             palette = "igv",
+             addEllipses = TRUE,       
+             ellipse.level = 0.80,     
+             ggtheme = theme_bw()) +
+ 
+  geom_point(data = as.data.frame(res.mca$var$coord), 
+             aes(x = `Dim 1`, y = `Dim 2`), 
+             shape = 17, size = 3, color = "black") + 
+ 
+  geom_text_repel(data = as.data.frame(res.mca$var$coord),
+                  aes(x = `Dim 1`, y = `Dim 2`, 
+                      label = gsub(".*:", "", rownames(res.mca$var$coord))),
+                  size = 3.5, fontface = "bold", color = "black",
+                  max.overlaps = Inf) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        legend.title = element_text(face = "bold")) +
+  labs(title = "MCA - Indicator Matrix (Levels)",
+       subtitle = paste("Total Inertia:", round(res.mca$eig[1,2] + res.mca$eig[2,2], 1), "%"),
+        x = paste0("Dimension 1 (", round(res.mca$eig[1,2], 1), "%)"),
+       y = paste0("Dimension 2 (", round(res.mca$eig[2,2], 1), "%)"))
+```
+
+
+
+
+```{r}
+
+res.mca <- MCA(df_mca_ready, method = "indicator", graph = FALSE)
+
+
+fviz_mca_ind(res.mca,
+             geom = "none",          
+             habillage = "Q11G",        
+             palette = "igv",
+             addEllipses = TRUE,        
+             ellipse.type = "norm",     
+             ellipse.level = 0.95,     
+             ggtheme = theme_bw()) +
+  
+  geom_point(data = as.data.frame(res.mca$var$coord), 
+             aes(x = `Dim 1`, y = `Dim 2`, color = variable_groups), 
+             shape = 17, size = 3) + 
+  
+  geom_text_repel(data = as.data.frame(res.mca$var$coord),
+                  aes(x = `Dim 1`, y = `Dim 2`, 
+                      label = gsub(".*:", "", rownames(res.mca$var$coord)),
+                      color = variable_groups),
+                  size = 3.5, fontface = "bold", max.overlaps = Inf) +
+  theme(panel.grid = element_blank()) +
+  labs(title = "MCA - Indicator Matrix (Levels)",
+       subtitle = paste("Total Inertia:", round(res.mca$eig[1,2] + res.mca$eig[2,2], 1), "%"),
+        x = paste0("Dimension 1 (", round(res.mca$eig[1,2], 1), "%)"),
+       y = paste0("Dimension 2 (", round(res.mca$eig[2,2], 1), "%)"))
+  
+```
+
+
+```{r}
+# 1. Analizi çalıştır
+res.mca <- MCA(df_mca_ready, method = "indicator", graph = FALSE)
+
+# 2. Koordinatları Hazırla
+vars_df <- as.data.frame(res.mca$var$coord)
+vars_df$Label <- gsub(".*:", "", rownames(vars_df))
+vars_df$Group <- variable_groups
+
+# 3. GRAFİK 
+fviz_mca_ind(res.mca,
+             geom = "none",          
+             habillage = "Q11G",       
+             palette = "igv",
+             addEllipses = TRUE,      
+             ellipse.type = "norm",    
+             ellipse.level = 0.90,     
+             ggtheme = theme_bw()) +
+  
+  geom_point(data = vars_df, aes(x = `Dim 1`, y = `Dim 2`, color = Group), 
+             shape = 17, size = 3) +
+  geom_text_repel(data = vars_df, aes(x = `Dim 1`, y = `Dim 2`, label = Label),
+                  color = "black", size = 3.2, fontface = "plain") +
+  theme(panel.grid = element_blank(), text = element_text(face = "bold")) +
+  labs(title = "MCA - Indicator Matrix (Levels)",
+       subtitle = paste("Total Inertia:", round(res.mca$eig[1,2] + res.mca$eig[2,2], 1), "%"),
+       x = paste0("Dimension 1 (", round(res.mca$eig[1,2], 1), "%)"),
+       y = paste0("Dimension 2 (", round(res.mca$eig[2,2], 1), "%)"),
+       color = "Değişkenler")
+
+```
+
+```{r}
+# 1. Koordinatları al ve sütun isimlerini R'ın anlayacağı hale (Dim1, Dim2) getir
+vars_coord <- as.data.frame(res.mca$var$coord[, 1:2])
+colnames(vars_coord) <- c("Dim1", "Dim2") # İsimleri boşluksuz yaptık
+vars_coord$Label <- rownames(vars_coord)
+
+# 2. GRAFİK 
+library(ggplot2)
+library(ggrepel)
+
+ggplot(vars_coord, aes(x = Dim1, y = Dim2)) +
+  
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        text = element_text(face = "bold")) +
+  
+  
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey75") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey75") +
+  
+  
+  
+  geom_segment(aes(x = 0, y = 0, xend = Dim1, yend = Dim2), 
+               arrow = arrow(length = unit(0.2, "cm")), 
+               color = "red", alpha = 0.7) +
+  
+ 
+  geom_point(color = "red", shape = 17, size = 2.5) +
+  
+  
+  geom_text_repel(aes(label = gsub(".*:", "", Label)), 
+                  color = "black", 
+                  size = 3.2, 
+                  fontface = "plain",
+                  max.overlaps = Inf) +
+  
+  labs(title = "MCA - Indicator Matrix (Arrows with Levels)",
+       subtitle = paste("Total Inertia:", round(res.mca$eig[1,2] + res.mca$eig[2,2], 1), "%"),
+       x = paste0("Dimension 1 (", round(res.mca$eig[1,2], 1), "%)"),
+       y = paste0("Dimension 2 (", round(res.mca$eig[2,2], 1), "%)"))
+```
+
+```{r}
+
+vars_coord <- as.data.frame(res.mca$var$coord[, 1:2])
+colnames(vars_coord) <- c("Dim1", "Dim2")
+
+
+vars_coord$FullLabel <- rownames(vars_coord) 
+
+
+ggplot(vars_coord, aes(x = Dim1, y = Dim2)) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        text = element_text(face = "bold")) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey75") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey75") +
+  
+  
+  geom_segment(aes(x = 0, y = 0, xend = Dim1, yend = Dim2), 
+               arrow = arrow(length = unit(0.2, "cm")), 
+               color = "red", alpha = 0.6) +
+  
+  geom_point(color = "red", shape = 17, size = 2.5) +
+  
+  
+  geom_text_repel(aes(label = FullLabel), 
+                  color = "black", 
+                  size = 3, 
+                  fontface = "plain",
+                  max.overlaps = Inf) +
+  
+  labs(title = "MCA - Indicator Matrix (Arrows with Levels)",
+       subtitle = paste("Total Inertia:", round(res.mca$eig[1,2] + res.mca$eig[2,2], 1), "%"),
+       x = paste0("Dimension 1 (", round(res.mca$eig[1,2], 1), "%)"),
+       y = paste0("Dimension 2 (", round(res.mca$eig[2,2], 1), "%)"))
+```
+
+```{r}
+
+res.mca_burt <- MCA(df_mca_ready, method = "burt", graph = FALSE)
+
+
+vars_burt <- as.data.frame(res.mca_burt$var$coord[, 1:2])
+colnames(vars_burt) <- c("Dim1", "Dim2")
+vars_burt$FullLabel <- rownames(vars_burt)
+vars_burt$Variable <- variable_groups
+
+
+ggplot(vars_burt, aes(x = Dim1, y = Dim2)) +
+
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        text = element_text(face = "bold")) +
+  
+  
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey75") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey75") +
+  
+  
+  geom_point(color = "red", shape = 17, size = 2.5) +
+  
+  
+  geom_text_repel(aes(label = FullLabel), 
+                  color = "black", 
+                  size = 3, 
+                  fontface = "plain",
+                  max.overlaps = Inf) +
+  
+  labs(title = "MCA - Burt Matrix",
+       subtitle = paste("Total Inertia (Burt):", round(res.mca_burt$eig[1,2] + res.mca_burt$eig[2,2], 1), "%"),
+       x = paste0("Dimension 1 (", round(res.mca_burt$eig[1,2], 1), "%)"),
+       y = paste0("Dimension 2 (", round(res.mca_burt$eig[2,2], 1), "%)"))
+```
+
+```{r}
+library(FactoMineR)
+library(ggplot2)
+library(ggrepel)
+
+# 1. Burt Matrix Analizi
+res_mca_burt <- MCA(df_mca_ready, method = "Burt", graph = FALSE)
+
+
+vars_burt <- as.data.frame(res_mca_burt$var$coord[, 1:2])
+colnames(vars_burt) <- c("Dim1", "Dim2")
+vars_burt$FullLabel <- rownames(vars_burt)
+
+
+vars_burt$NaturalGroup <- "Grup 4"
+vars_burt$NaturalGroup[vars_burt$Dim1 > 0 & vars_burt$Dim2 > 0] <- "Grup 1"
+vars_burt$NaturalGroup[vars_burt$Dim1 > 0 & vars_burt$Dim2 <= 0] <- "Grup 2"
+vars_burt$NaturalGroup[vars_burt$Dim1 <= 0 & vars_burt$Dim2 > 0] <- "Grup 3"
+
+
+ggplot(vars_burt, aes(x = Dim1, y = Dim2, color = NaturalGroup)) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        text = element_text(face = "bold"),
+        legend.position = "none") + 
+  
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey75") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey75") +
+
+  
+  stat_ellipse(size = 1, type = "t") +
+
+  
+  geom_point(color = "red", shape = 17, size = 3) +
+  
+  
+  geom_text_repel(aes(label = FullLabel), 
+                  color = "black", size = 3.2, fontface = "plain", 
+                  segment.color = NA, max.overlaps = Inf) +
+
+ 
+  labs(title = "MCA - Burt Matrix (Levels)",
+       subtitle = paste0("Total Inertia (Burt): %", round(res_mca_burt$eig[1,2] + res_mca_burt$eig[2,2], 1)),
+       x = paste0("Dimension 1 (", round(res_mca_burt$eig[1,2], 1), "%)"),
+       y = paste0("Dimension 2 (", round(res_mca_burt$eig[2,2], 1), "%)")
+  )
+```
+
+```{r}
+library(ggplot2)
+library(ggrepel)
+library(FactoMineR)
+
+# 1. Analizi Burt Matrix yöntemiyle çalıştıralım
+res.mca_burt <- MCA(df_mca_ready, method = "burt", graph = FALSE)
+
+
+vars_burt <- as.data.frame(res.mca_burt$var$coord[, 1:2])
+colnames(vars_burt) <- c("Dim1", "Dim2")
+vars_burt$FullLabel <- rownames(vars_burt)
+
+
+ind_coords_burt <- as.data.frame(res.mca_burt$ind$coord[, 1:2])
+colnames(ind_coords_burt) <- c("Dim1", "Dim2")
+
+ind_coords_burt$Group <- df_mca_ready$Q11G 
+
+
+ggplot() +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        text = element_text(face = "bold")) +
+  
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey75") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey75") +
+
+  
+  stat_ellipse(data = ind_coords_burt, aes(x = Dim1, y = Dim2, color = Group), 
+               type = "t", level = 0.95, size = 1) +
+
+  
+  geom_point(data = vars_burt, aes(x = Dim1, y = Dim2), 
+             color = "red", shape = 17, size = 3) +
+  
+ 
+  geom_text_repel(data = vars_burt, aes(x = Dim1, y = Dim2, label = FullLabel), 
+                  color = "black", size = 3, fontface = "plain", max.overlaps = Inf) +
+  
+  
+  labs(title = "MCA - Burt Matrix (Levels)",
+       subtitle = paste("Total Inertia (Burt):", 
+                        round(res.mca_burt$eig[1,2] + res.mca_burt$eig[2,2], 1), "%"),
+       x = paste0("Dimension 1 (", round(res.mca_burt$eig[1,2], 1), "%)"),
+       y = paste0("Dimension 2 (", round(res.mca_burt$eig[2,2], 1), "%)"),
+       color = "Şifacıya Güven")
+```
+
+
+```{r}
+library(factoextra)
+
+
+fviz_eig(res.mca_burt, 
+         addlabels = TRUE,       
+         ylim = c(0, 25),        
+         barfill = "steelblue",  
+         barcolor = "steelblue",
+         linecolor = "black",      
+         ggtheme = theme_bw()) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        text = element_text(face = "bold")) +
+  labs(title = "Scree Plot - Burt Matrix",
+       subtitle = paste("Total Inertia (Burt):", round(res.mca_burt$eig[1,2] + res.mca_burt$eig[2,2], 1), "%"),
+       x = "Dimensions",
+       y = "Percentage of Explained Variance")
+```
+
+```{r}
+library(factoextra)
+
+
+res.mca_burt <- MCA(df_mca_ready, method = "burt", graph = FALSE)
+
+
+fviz_mca_var(res.mca_burt, 
+             col.var = "cos2",       
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), 
+             repel = TRUE,         
+             ggtheme = theme_bw()) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        text = element_text(face = "bold")) +
+  labs(title = "Variable categories - MCA",
+       subtitle = paste("Total Inertia (Burt):", round(res.mca_burt$eig[1,2] + res.mca_burt$eig[2,2], 1), "%"),
+       x = paste0("Dim1 (", round(res.mca_burt$eig[1,2], 1), "%)"), 
+       y = paste0("Dim2 (", round(res.mca_burt$eig[2,2], 1), "%)"))
+```
+
+
+```{r}
+library(corrplot)
+
+
+var_cos2 <- res.mca_burt$var$cos2[, 1:5]
+
+
+corrplot(var_cos2, 
+         is.corr = FALSE, 
+         method = "circle", 
+         
+         
+         col = colorRampPalette(c("#eff3ff", "#6baed6", "#084594"))(20),
+         
+         
+         tl.col = "red", 
+         tl.cex = 0.7, 
+         
+         
+         tl.srt = 90, 
+         
+        
+         cl.pos = "r",       
+         cl.ratio = 0.2,     
+         cl.cex = 0.7,       
+         cl.offset = 1.5,     
+         
+         
+         addgrid.col = "grey85",
+         
+         mar = c(0, 0, 3, 4) 
+)
+```
+
+
+```{r}
+library(factoextra)
+
+
+fviz_cos2(res.mca_burt, 
+          choice = "var", 
+          axes = 1:2,           
+          top = 30,             
+          fill = "steelblue",   
+          color = "steelblue",
+          ggtheme = theme_bw()) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        text = element_text(face = "bold"),
+        # Yazıları tam dik (90 derece) yapıyoruz ki hepsi sığsın ve okunsun
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+  labs(title = "Cos2 of variables to Dim-1-2",
+       subtitle = paste("Total Inertia (Burt):", round(res.mca_burt$eig[1,2] + res.mca_burt$eig[2,2], 1), "%"),
+       y = "Cos2 - Quality of representation",
+       x = "Variables Categories")
+```
+
+```{r}
+library(factoextra)
+
+
+fviz_contrib(res.mca_burt, 
+             choice = "var", 
+             axes = 1,           
+             top = 30,           
+             fill = "steelblue", 
+             color = "steelblue",
+             ggtheme = theme_bw()) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+        text = element_text(face = "bold")) +
+  labs(title = "Contribution of variables to Dim-1",
+       y = "Contributions (%)")
+```
+
+```{r}
+
+fviz_contrib(res.mca_burt, 
+             choice = "var", 
+             axes = 2,           
+             top = 30, 
+             fill = "steelblue", 
+             color = "steelblue",
+             ggtheme = theme_bw()) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+        text = element_text(face = "bold")) +
+  labs(title = "Contribution of variables to Dim-2",
+       y = "Contributions (%)")
+
+
+fviz_contrib(res.mca_burt, 
+             choice = "var", 
+             axes = 1:2,         
+             top = 30, 
+             fill = "steelblue", 
+             color = "steelblue",
+             ggtheme = theme_bw()) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+        text = element_text(face = "bold")) +
+  labs(title = "Contribution of variables to Dim-1-2",
+       y = "Contributions (%)")
+```
+
+```{r}
+library(factoextra)
+
+
+fviz_mca_var(res.mca_burt, 
+             col.var = "contrib",           
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), 
+             repel = TRUE,                  
+             ggtheme = theme_minimal()) +   
+  labs(title = "Variable categories - MCA", 
+       subtitle = paste("Total Inertia (Burt):", round(res.mca_burt$eig[1,2] + res.mca_burt$eig[2,2], 1), "%"),
+       x = paste0("Dim1 (", round(res.mca_burt$eig[1,2], 1), "%)"), 
+       y = paste0("Dim2 (", round(res.mca_burt$eig[2,2], 1), "%)"))
+```
+
+
+```{r}
+library(factoextra)
+library(FactoMineR)
+
+
+res.mca_final <- MCA(df_mca_ready, graph = FALSE)
+
+
+fviz_mca_ind(res.mca_final, 
+             label = "none",                
+             habillage = "Q11G",            
+             palette = c("#00AFBB", "#E7B800", "#FC4E07"), 
+             addEllipses = TRUE,            
+             ellipse.type = "confidence",   
+             ggtheme = theme_minimal()) +
+  labs(title = "Individuals - MCA",
+       x =  paste0("Dim1 (", round(res.mca_burt$eig[1,2], 1), "%)"), 
+       y = paste0("Dim2 (", round(res.mca_burt$eig[2,2], 1), "%)"),
+       color = "Şifacıya Güven") +
+  
+  guides(fill = "none")
+```
+
+
+```{r}
+library(ca)
+library(ggplot2)
+library(ggrepel)
+# 1. ANALİZ
+res_adj_auto <- mjca(df_mca_ready, lambda = "adjusted", nd = 2)
+
+adj_ev <- res_adj_auto$inertia.e
+adj_ev[is.na(adj_ev)] <- 0
+adj_pct <- adj_ev / sum(adj_ev) * 100
+# 2. KOORDİNATLAR (Aynalama Dahil)
+adj_coords_sade <- as.data.frame(res_adj_auto$colcoord[, 1:2])
+colnames(adj_coords_sade) <- c("Dim1", "Dim2")
+adj_coords_sade$Dim1 <- adj_coords_sade$Dim1 * -1 # Eski yöne eşitleme
+adj_coords_sade$Dim2 <- adj_coords_sade$Dim2 * -1 
+
+# Etiket Temizleme
+adj_coords_sade$FullLabel <- sub("^[^:]+:", "", res_adj_auto$levelnames)
+
+# 3. GRAFİK
+ggplot(adj_coords_sade, aes(x = Dim1, y = Dim2)) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        text = element_text(face = "bold")) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey60") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey60") +
+  geom_point(color = "red", shape = 17, size = 3.5) +
+  geom_text_repel(aes(label = FullLabel), 
+                  size = 3.5, segment.color = NA, max.overlaps = Inf) +
+  labs(title = "Değişken Kategorileri - Düzeltilmiş Burt MCA",
+       subtitle = paste("Toplam Açıklanan Varyans (Düzeltilmiş Burt):", round(adj_pct[1] + adj_pct[2], 1), "%"),
+       x = paste0("Boyut 1 (", round(adj_pct[1], 1), "%)"),
+       y = paste0("Boyut 2 (", round(adj_pct[2], 1), "%)"))
+```
+
+```{r}
+# 1. ANALİZ VE KOORDİNATLAR (Aynalama Dahil)
+res_adj_auto <- mjca(df_mca_ready, lambda = "adjusted", nd = 2)
+adj_coords_oklu <- as.data.frame(res_adj_auto$colcoord[, 1:2])
+colnames(adj_coords_oklu) <- c("Dim1", "Dim2")
+adj_coords_oklu$Dim1 <- adj_coords_oklu$Dim1 * -1
+adj_coords_oklu$Dim2 <- adj_coords_oklu$Dim2 * -1
+adj_coords_oklu$FullLabel <- sub("^[^:]+:", "", res_adj_auto$levelnames)
+
+# 2. GRAFİK (Oklarla)
+ggplot(adj_coords_oklu, aes(x = Dim1, y = Dim2)) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        text = element_text(face = "bold")) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey60") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey60") +
+  
+  # OKLAR: Merkezden noktalara giden çizgiler
+  geom_segment(aes(x = 0, y = 0, xend = Dim1, yend = Dim2), 
+               arrow = arrow(length = unit(0.2, "cm")), 
+               color = "red", alpha = 0.5) +
+  
+  geom_point(color = "red", shape = 17, size = 3) +
+  geom_text_repel(aes(label = FullLabel), 
+                  size = 3.2, segment.color = NA, max.overlaps = Inf) +
+  labs(title = "Değişken Kategorileri Çekim Haritası (Oklu)",
+       subtitle = paste("Toplam Açıklanan Varyans (Düzeltilmiş Burt):", round(adj_pct[1] + adj_pct[2], 1), "%"),
+       x = paste0("Boyut 1 (", round(adj_pct[1], 1), "%)"),
+       y = paste0("Boyut 2 (", round(adj_pct[2], 1), "%)"))
+```
+
+
+```{r}
+library(ca)
+library(ggplot2)
+library(ggrepel)
+
+
+
+res_adj_auto <- mjca(df_mca_ready, lambda = "adjusted", nd = 2)
+
+# 2. KOORDİNAT VE TABLO HAZIRLIĞI
+adj_coords <- as.data.frame(res_adj_auto$colcoord[, 1:2])
+colnames(adj_coords) <- c("Dim1", "Dim2")
+
+adj_coords$Dim1 <- adj_coords$Dim1 * -1  # Solu sağ, sağı sol yapar
+adj_coords$Dim2 <- adj_coords$Dim2 * -1  # Altı üst, üstü alt yapar
+
+
+adj_coords$FullLabel <- sub("^[^:]+:", "", res_adj_auto$levelnames)
+
+# 3. GRUPLANDIRMA 
+adj_coords$NaturalGroup <- "Grup 3" # Sol Alt
+adj_coords$NaturalGroup[adj_coords$Dim1 > 0] <- "Grup 1" 
+adj_coords$NaturalGroup[adj_coords$Dim1 <= 0 & adj_coords$Dim2 > 0] <- "Grup 2" 
+
+
+adj_ev <- res_adj_auto$inertia.e
+adj_ev[is.na(adj_ev)] <- 0
+total_adj_pct <- round((sum(adj_ev[1:2]) / sum(adj_ev)) * 100, 1)
+
+
+ggplot(adj_coords, aes(x = Dim1, y = Dim2, color = NaturalGroup)) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        text = element_text(face = "bold"),
+        legend.position = "none") + 
+  
+  # Eksen Çizgileri 
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey60") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey60") +
+
+  # ELİPSLER
+  stat_ellipse(size = 1, type = "t") +
+
+  # NOKTALAR: Kırmızı Üçgenler
+  geom_point(color = "red", shape = 17, size = 3) +
+  
+  # ETİKETLER: Siyah ve Çizgisiz
+  geom_text_repel(aes(label = FullLabel), 
+                  color = "black", size = 3.2, fontface = "plain", 
+                  segment.color = NA, max.overlaps = Inf) +
+  
+  # BAŞLIK (Otomatik Yüzde Bilgisiyle)
+  labs(title = "MCA - Adjusted Burt Matrix (Levels)",
+       subtitle = paste0("Total Adjusted Inertia: %", round(adj_pct[1] + adj_pct[2], 1)),
+       x = paste0("Dimension 1 (", round(adj_pct[1], 1), "%)"),
+       y = paste0("Dimension 2 (", round(adj_pct[2], 1), "%)")
+  )
+```
+
+
+```{r}
+library(ca)
+library(ggplot2)
+library(ggrepel)
+library(FactoMineR)
+
+# 1. Analizi Adjusted koordinatlarla eşleşecek şekilde kullanıyoruz
+res.mca <- MCA(df_mca_ready, graph = FALSE)
+
+# 2. Koordinatları ve Değişken Gruplarını Hazırlayalım
+vars_adj <- as.data.frame(res.mca$var$coord[, 1:2])
+colnames(vars_adj) <- c("Dim1", "Dim2")
+vars_adj$FullLabel <- rownames(vars_adj)
+
+# 3. ELİPSLER İÇİN BİREY KOORDİNATLARINI ÇEKELİM
+ind_coords <- as.data.frame(res.mca$ind$coord[, 1:2])
+colnames(ind_coords) <- c("Dim1", "Dim2")
+
+ind_coords$Group <- df_mca_ready$Q11G 
+
+
+ggplot() +
+  # Sade Beyaz Tema
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        text = element_text(face = "bold")) +
+  
+  # Eksen Çizgileri
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey75") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey75") +
+
+  # ELİPSLER 
+  stat_ellipse(data = ind_coords, aes(x = Dim1, y = Dim2, color = Group), 
+               type = "t", level = 0.95, size = 1) +
+
+  # NOKTALAR: Kırmızı Üçgenler (Kategoriler)
+  geom_point(data = vars_adj, aes(x = Dim1, y = Dim2), 
+             color = "red", shape = 17, size = 3) +
+  
+  # ETİKETLER: Siyah Yazılar
+  geom_text_repel(data = vars_adj, aes(x = Dim1, y = Dim2, label = FullLabel), 
+                  color = "black", size = 3.5, fontface = "plain", max.overlaps = Inf) +
+  
+  
+  labs(title = "MCA - Adjusted Burt Matrix (Levels)",
+       subtitle = paste("Total Inertia (Adjusted Burt):", round(adj_pct[1] + adj_pct[2], 1), "%"),
+       x = paste0("Dimension 1 (", round(adj_pct[1], 1), "%)"),
+       y = paste0("Dimension 2 (", round(adj_pct[2], 1), "%)"),
+       color = "Şifacıya Güven")
+```
+
+
+
+```{r}
+library(ca)
+library(ggplot2)
+library(ggrepel)
+
+# 1. JCA Analizi
+res_jca <- mjca(df_mca_ready, lambda = "JCA", nd = 2)
+
+# 2. Koordinat hazırlığı
+jca_coords <- as.data.frame(res_jca$colcoord[, 1:2])
+colnames(jca_coords) <- c("Dim1", "Dim2")
+
+jca_coords$Dim1 <- jca_coords$Dim1 * -1  # Solu sağ, sağı sol yapar
+jca_coords$Dim2 <- jca_coords$Dim2 * -1  # Altı üst, üstü alt yapar
+
+jca_coords$FullLabel <- sub("^[^:]+:", "", res_jca$levelnames)
+
+
+# 3. GRAFİK
+ggplot(jca_coords, aes(x = Dim1, y = Dim2)) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        text = element_text(face = "bold")) +
+  
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey75") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey75") +
+  
+  geom_point(color = "red", shape = 17, size = 3.5) +
+  
+  
+  geom_text_repel(aes(label = FullLabel), 
+                  color = "black", 
+                  size = 3.5, 
+                  fontface = "plain",
+                  segment.color = NA,    # ÇİZGİLERİ KALDIRAN KOMUT
+                  max.overlaps = Inf) +
+  
+  labs(title = "JCA",
+       x = "Dimension 1", 
+       y = "Dimension 2")
+```
+
+```{r}
+```{r}
+library(ca)
+library(ggplot2)
+library(ggrepel)
+
+# 1. JCA Analizini yapalım
+res_jca <- mjca(df_mca_ready, lambda = "JCA", nd = 2)
+
+
+jca_coords <- as.data.frame(res_jca$colcoord[, 1:2])
+colnames(jca_coords) <- c("Dim1", "Dim2")
+
+jca_coords$Dim1 <- jca_coords$Dim1 * -1  # Solu sağ, sağı sol yapar
+jca_coords$Dim2 <- jca_coords$Dim2 * -1  # Altı üst, üstü alt yapar
+
+
+jca_coords$FullLabel <- sub("^[^:]+:", "", res_jca$levelnames)
+
+# 3. GRUPLANDIRMA 
+jca_coords$NaturalGroup <- "Grup 3" # Varsayılan: Sol Alt
+jca_coords$NaturalGroup[jca_coords$Dim1 > 0] <- "Grup 1" # Sağ tarafın tamamı
+jca_coords$NaturalGroup[jca_coords$Dim1 <= 0 & jca_coords$Dim2 > 0] <- "Grup 2" # Sol Üst
+
+
+jca_ev <- res_jca$inertia.e
+jca_ev[is.na(jca_ev)] <- 0
+dim1_pct <- round((jca_ev[1] / sum(jca_ev)) * 100, 1)
+dim2_pct <- round((jca_ev[2] / sum(jca_ev)) * 100, 1)
+
+
+ggplot(jca_coords, aes(x = Dim1, y = Dim2, color = NaturalGroup)) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        text = element_text(face = "bold"),
+        legend.position = "none") + 
+  
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey75") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey75") +
+
+  # ELİPSLER
+  stat_ellipse(size = 1, type = "t") +
+
+  # NOKTALAR: Kırmızı Üçgenler
+  geom_point(color = "red", shape = 17, size = 3) +
+  
+ 
+  geom_text_repel(aes(label = FullLabel), 
+                  color = "black", size = 3.2, fontface = "plain", 
+                  segment.color = NA, max.overlaps = Inf) +
+  
+  labs(title = "JCA (Levels)",
+       x = "Dimension 1",
+       y = "Dimension 2")
+```
+
+
+```{r}
+library(ca)
+library(ggplot2)
+library(ggrepel)
+
+# 1. JCA Analizini Yapalım
+res_jca <- mjca(df_mca_ready, lambda = "JCA", nd = 2)
+
+
+res_jca$levelnames <- unlist(lapply(df_mca_ready, levels))
+
+# 3. Birey Koordinatlarını Çekelim (Elipsler için)
+ind_jca <- as.data.frame(res_jca$rowcoord[, 1:2])
+colnames(ind_jca) <- c("Dim1", "Dim2")
+ind_jca$Sifaci_Guven <- df_mca_ready$Q11G  # Elipslerin renk grubu
+
+
+vars_jca <- as.data.frame(res_jca$colcoord[, 1:2])
+colnames(vars_jca) <- c("Dim1", "Dim2")
+vars_jca$FullLabel <- res_jca$levelnames
+
+# Oran Hesaplama
+jca_ev <- res_jca$inertia.e
+jca_ev[is.na(jca_ev)] <- 0
+total_jca_pct <- round((sum(jca_ev[1:2]) / sum(jca_ev)) * 100, 1)
+
+
+ggplot() +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        text = element_text(face = "bold"),
+        legend.position = "right") + # Açıklama sağda
+  
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey75") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey75") +
+
+  # ELİPSLER: Şifacıya güven gruplarına göre
+  stat_ellipse(data = ind_jca, aes(x = Dim1, y = Dim2, color = Sifaci_Guven), 
+               type = "t", level = 0.95, size = 1) +
+
+  # NOKTALAR: Kategoriler (Kırmızı Üçgenler)
+  geom_point(data = vars_jca, aes(x = Dim1, y = Dim2), 
+             color = "red", shape = 17, size = 3) +
+  
+  # ETİKETLER: Düzeltilmiş Temiz Yazılar
+  geom_text_repel(data = vars_jca, aes(x = Dim1, y = Dim2, label = FullLabel), 
+                  color = "black", size = 3.2, fontface = "plain", 
+                  segment.color = NA, 
+                  max.overlaps = Inf) +
+  
+  labs(title = "JCA (Levels)",
+       x = "Dimension 1", 
+       y = "Dimension 2",
+       color = "Şifacıya Güven")
+```
+
+```{r}
+library(ca)
+library(ggplot2)
+library(ggrepel)
+
+# 1. JCA Analizini Yapalım
+res_jca <- mjca(df_mca_ready, lambda = "JCA", nd = 2)
+
+
+res_jca$levelnames <- unlist(lapply(df_mca_ready, levels))
+
+# 3. Koordinatlar
+vars_jca_arrows <- as.data.frame(res_jca$colcoord[, 1:2])
+colnames(vars_jca_arrows) <- c("Dim1", "Dim2")
+vars_jca_arrows$FullLabel <- res_jca$levelnames
+
+vars_jca_arrows$Dim1 <- vars_jca_arrows$Dim1 * -1  # Solu sağ, sağı sol yapar
+vars_jca_arrows$Dim2 <- vars_jca_arrows$Dim2 * -1  # Altı üst, üstü alt yapar
+
+
+jca_ev <- res_jca$inertia.e
+jca_ev[is.na(jca_ev)] <- 0
+total_jca_pct <- round((sum(jca_ev[1:2]) / sum(jca_ev)) * 100, 1)
+
+
+ggplot(vars_jca_arrows, aes(x = Dim1, y = Dim2)) +
+  # Sade Beyaz Tema
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        text = element_text(face = "bold")) +
+  
+  # Eksen Çizgileri
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey75") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey75") +
+  
+  # OKLAR: Merkezden kategorilere giden kırmızı oklar
+  geom_segment(aes(x = 0, y = 0, xend = Dim1, yend = Dim2), 
+               arrow = arrow(length = unit(0.2, "cm")), 
+               color = "red", alpha = 0.4) +
+  
+  # NOKTALAR: Kırmızı Üçgenler
+  geom_point(color = "red", shape = 17, size = 3) +
+  
+  # ETİKETLER: Senin adlandırdığın temiz isimler (Siyah çizgiler kapatıldı)
+  geom_text_repel(aes(label = FullLabel), 
+                  color = "black", 
+                  size = 3.2, 
+                  fontface = "plain",
+                  segment.color = NA, 
+                  max.overlaps = Inf) +
+  
+  # Başlık ve Oranlar
+  labs(title = "JCA (Arrows with Levels)",
+       x = "Dimension 1", 
+       y = "Dimension 2")
+```
+
+
+```{r}
+
+n_dims <- length(adj_pct)
+scree_data <- data.frame(
+  Dimension = factor(1:n_dims),
+  Variance = adj_pct
+)
+
+#(Adjusted Burt Scree Plot)
+ggplot(scree_data[1:10, ], aes(x = Dimension, y = Variance)) + # İlk 10 boyutu gösterelim
+  geom_bar(stat = "identity", fill = "steelblue", color = "steelblue") +
+  geom_line(aes(group = 1), color = "black") +
+  geom_point(color = "black") +
+  geom_text(aes(label = paste0(round(Variance, 1), "%")), 
+            vjust = -0.5) +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        text = element_text(face = "bold")) +
+  ylim(0, max(adj_pct) + 10) + # En yüksek sütuna göre pay bırakır
+  labs(title = "Yamaç Grafiği - Düzeltilmiş Burt Matrisi",
+       subtitle = paste("Toplam Açıklanan Varyans (Düzeltilmiş Burt):", round(adj_pct[1] + adj_pct[2], 1), "%"),
+       x = "Boyutlar",
+       y = "Açıklanan Varyans (%)")
+```
+
+
+```{r}
+library(ggplot2)
+library(ggrepel)
+
+# 1. VERİ HAZIRLAMA 
+plot_data <- as.data.frame(res_adj_auto$colcoord[, 1:2])
+colnames(plot_data) <- c("Dim1", "Dim2")
+plot_data$Dim1 <- plot_data$Dim1 * -1
+plot_data$Dim2 <- plot_data$Dim2 * -1
+
+coords_full <- as.matrix(res_adj_auto$colcoord)
+plot_data$cos2 <- rowSums(as.matrix(res_adj_auto$colcoord[, 1:2])^2) / rowSums(coords_full^2)
+plot_data$Label <- sub("^[^:]+:", "", res_adj_auto$levelnames)
+
+# 2. GRAFİK 
+ggplot(plot_data, aes(x = Dim1, y = Dim2, color = cos2)) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey60") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey60") +
+  
+  geom_point(shape = 17) + 
+  
+  geom_text_repel(aes(label = Label), 
+                  max.overlaps = Inf,
+                  show.legend = FALSE) +
+  
+  
+  scale_color_gradientn(colors = c("#00AFBB", "#E7B800", "#FC4E07")) + 
+  
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        text = element_text(face = "bold"),
+        legend.position = "right",
+        
+        legend.key.height = unit(1, "cm"),
+        legend.key.width = unit(0.4, "cm")) +
+  
+  labs(title = "Değişken Kategorileri - Düzeltilmiş Burt MCA",
+       subtitle = paste("Toplam Açıklanan Varyans (Düzeltilmiş Burt): %", round(adj_pct[1] + adj_pct[2], 1)),
+       x = paste0("Boyut 1 (%", round(adj_pct[1], 1), ")"), 
+       y = paste0("Boyut 2 (%", round(adj_pct[2], 1), ")"),
+       color = "cos2")
+```
+
+```{r}
+library(factoextra)
+library(ggplot2)
+
+fviz_contrib(res.mca_burt, 
+             choice = "var", 
+             axes = 1,           # 1. Boyut
+             top = 30,           # Tüm kategorileri getir
+             fill = "steelblue", 
+             color = "steelblue",
+             ggtheme = theme_bw()) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+        text = element_text(face = "bold")) +
+  labs(title = "Değişkenlerin 1. Boyuta Katkısı",
+       y = "Katkı Payı (%)")
+```
+
+```{r}
+library(factoextra)
+library(ggplot2)
+
+fviz_contrib(res.mca_burt, 
+             choice = "var", 
+             axes = 2,           # 2. Boyut
+             top = 30,           
+             fill = "steelblue", 
+             color = "steelblue",
+             ggtheme = theme_bw()) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+        text = element_text(face = "bold")) +
+  labs(title = "Değişkenlerin 2. Boyuta Katkısı (%)",
+       y = "Katkı Payı (%)")
+```
+
+
+
+```{r}
+library(factoextra)
+library(FactoMineR)
+library(ggplot2)
+
+
+res.mca_final <- MCA(df_mca_ready, graph = FALSE)
+
+
+p_final <- fviz_mca_ind(res.mca_final, 
+             label = "none",                
+             habillage = "Q11G", # Bağımlı değişkenin
+             palette = c("#00AFBB", "#E7B800", "#FC4E07"), 
+             addEllipses = TRUE,            
+             ellipse.type = "confidence",   
+             ggtheme = theme_bw()) + 
+  labs(title = "Bireyler Haritası - MCA (Şifacıya Güven Dağılımı)",
+       x = "Boyut 1", 
+       y = "Boyut 2",
+       color = "Şifacıya Güven") +
+  guides(fill = "none") + 
+  theme(
+    
+    panel.grid.major = element_blank(), 
+    panel.grid.minor = element_blank(),
+    
+    # BAŞLIK: Sola yaslı ve kalın 
+    plot.title = element_text(face = "bold", size = 13, hjust = 0),
+    
+    
+    axis.text = element_text ( colour = "black", size = 9),
+    
+    
+    axis.title = element_text(face = "bold", size = 11),
+    
+    
+    panel.border = element_rect(colour = "black", fill = NA, size = 0.2),
+    
+   
+    text = element_text(face = "bold")
+  ) +
+  
+  geom_vline(xintercept = 0, linetype = "dashed", color = "grey60") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "grey60")
+
+
+print(p_final)
+```
+

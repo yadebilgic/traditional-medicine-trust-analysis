@@ -39,9 +39,9 @@ An empirical undergraduate research project examining the multidimensional facto
 
 ## Repository Contents
 
-* [`Yade_Irem_Bilgic_Lisans_Tezi.pdf`](./Yade_Irem_Bilgic_Lisans_Tezi.pdf): Complete undergraduate thesis text (in Turkish).
-* [`analiz_kodlari.Rmd`](./analiz_kodlari.Rmd): R Markdown source code for data visualization and MCA models.
-* [`analiz_raporu.html`](./analiz_raporu.html): Compiled R Markdown analysis output and visual reports.
-* [`WGM_Turkiye_Veri_Seti_Ham.xlsx`](./WGM_Turkiye_Veri_Seti_Ham.xlsx): Raw Wellcome Global Monitor survey dataset.
-* [`düzenlenmiş_veri.sav`](./düzenlenmiş_veri.sav): Cleaned and recoded SPSS dataset used for final modeling.
-* [`çıktılar.spv`](./çıktılar.spv): Native SPSS statistical output files.
+* [`Yade_Bilgic_Undergraduate_Thesis.pdf`](./Yade_Bilgic_Undergraduate_Thesis.pdf): Complete undergraduate thesis text (in Turkish).
+* [`analysis_code.Rmd`](./analysis_code.Rmd): R Markdown source code for data visualization and MCA models.
+* [`analysis_report.html`](./analysis_report.html): Compiled R Markdown analysis output and visual reports.
+* [`wgm_turkey_raw_data.xlsx`](./wgm_turkey_raw_data.xlsx): Raw Wellcome Global Monitor survey dataset.
+* [`processed_data.sav`](./processed_data.sav): Cleaned and recoded SPSS dataset used for final modeling.
+* [`spss_outputs.spv`](./spss_outputs.spv): Native SPSS statistical output files.

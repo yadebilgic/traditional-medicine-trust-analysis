@@ -64,5 +64,5 @@ A full multivariable model was fitted with **Low Trust** as the reference catego
 - **Yade İrem Bilgiç** – Statistician / Data Analyst
 - **Affiliation:** Department of Statistics, Faculty of Science and Letters, Mimar Sinan Fine Arts University
 - **Thesis Advisor:** Asst. Prof. Dr. Elif Çoker
-- - **Email:** yadeirem2004@gmail.com
+- **Email:** yadeirem2004@gmail.com
 - **Thesis Full Text:** [`Yade_Bilgic_Undergraduate_Thesis.pdf`](./Yade_Bilgic_Undergraduate_Thesis.pdf)

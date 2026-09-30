@@ -1,5 +1,7 @@
 # Statistical Analysis of Public Trust in Traditional & Complementary Medicine in Turkey
 
+[![Read Research Paper](https://img.shields.io/badge/📄_Read_Research_Paper-PDF-blue?style=for-the-badge)](./Yade_Bilgic_Research_Paper.pdf)
+
 An empirical undergraduate research project examining the multidimensional determinants of public trust in traditional and complementary medicine (T&CM) healers in Turkey, utilizing the **Wellcome Global Monitor (WGM)** microdata ($N = 790$).
 
 The study integrates bivariate associations, dimensionality reduction via correspondence analysis, and multivariable probability modeling to test whether trust in traditional healers stems from institutional marginalization ("reaction model") or functions as an integrated wellness preference ("consumption model").
@@ -65,4 +67,4 @@ A full multivariable model was fitted with **Low Trust** as the reference catego
 - **Affiliation:** Department of Statistics, Faculty of Science and Letters, Mimar Sinan Fine Arts University
 - **Thesis Advisor:** Asst. Prof. Dr. Elif Çoker
 - **Email:** yadeirem2004@gmail.com
-- **Thesis Full Text:** [`Yade_Bilgic_Undergraduate_Thesis.pdf`](./Yade_Bilgic_Undergraduate_Thesis.pdf)
+- **Full Research Paper:** [`Yade_Bilgic_Research_Paper.pdf`](./Yade_Bilgic_Research_Paper.pdf)

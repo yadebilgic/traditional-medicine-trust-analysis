@@ -1,6 +1,6 @@
 # Statistical Analysis of Public Trust in Traditional & Complementary Medicine in Turkey
 
-[![Read Research Paper](https://img.shields.io/badge/📄_Read_Research_Paper-PDF-blue?style=for-the-badge)](./Yade_Bilgic_Research_Paper.pdf)
+[![Read Research Paper](https://img.shields.io/badge/📄_Read_Research_Paper-PDF-blue?style=for-the-badge)](./Yade_Irem_Bilgic_Research_Paper.pdf)
 
 An empirical undergraduate research project examining the multidimensional determinants of public trust in traditional and complementary medicine (T&CM) healers in Turkey, utilizing the **Wellcome Global Monitor (WGM)** microdata ($N = 790$).
 
